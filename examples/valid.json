@@ -1,0 +1,11 @@
+{
+  "asset_value": 5000000,
+  "buyer": "cryo-bank-alpha",
+  "contract_id": "CF-VALID-001",
+  "days_to_expiry": 90,
+  "failure_prob": 0.05,
+  "future_price": 5124140.883290355,
+  "premium": 124140.8832903552,
+  "seller": "quantum-cool-exchange",
+  "time_factor": 0.49656353316142077
+}
