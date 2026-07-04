@@ -29,7 +29,9 @@ class TestPricing(unittest.TestCase):
         expected_premium = 5000000 * 0.05 * expected_time_factor
         self.assertAlmostEqual(r["time_factor"], expected_time_factor)
         self.assertAlmostEqual(r["premium"], expected_premium)
-        self.assertAlmostEqual(r["future_price"], 5000000 + expected_premium)
+        self.assertAlmostEqual(r["future_price"], expected_premium)
+        self.assertAlmostEqual(r["payout_amount"], 5000000)
+        self.assertEqual(r["settlement_mode"], "failure_protection")
         self.assertEqual(r["asset_value"], 5000000)
         self.assertEqual(r["failure_prob"], 0.05)
         self.assertEqual(r["days_to_expiry"], 90)
@@ -49,17 +51,17 @@ class TestSettlement(unittest.TestCase):
         contract = samples()["valid"]
         result = settle_contract(contract, actual_failure=True)
         self.assertTrue(result["actual_failure"])
-        self.assertEqual(result["settlement_amount"], contract["asset_value"])
-        self.assertEqual(result["buyer_payoff"], contract["asset_value"])
-        self.assertEqual(result["seller_payoff"], -contract["asset_value"])
+        self.assertEqual(result["settlement_amount"], contract["payout_amount"])
+        self.assertEqual(result["buyer_net"], contract["payout_amount"] - contract["premium"])
+        self.assertEqual(result["seller_net"], contract["premium"] - contract["payout_amount"])
 
     def test_settle_no_failure(self):
         contract = samples()["valid"]
         result = settle_contract(contract, actual_failure=False)
         self.assertFalse(result["actual_failure"])
-        self.assertEqual(result["settlement_amount"], contract["future_price"])
-        self.assertEqual(result["buyer_payoff"], -contract["future_price"])
-        self.assertEqual(result["seller_payoff"], contract["future_price"])
+        self.assertEqual(result["settlement_amount"], 0.0)
+        self.assertEqual(result["buyer_net"], -contract["premium"])
+        self.assertEqual(result["seller_net"], contract["premium"])
 
     def test_settle_preserves_contract_id(self):
         contract = samples()["breach"]
@@ -77,7 +79,7 @@ class TestReport(unittest.TestCase):
         contract = samples()["valid"]
         text = render_report(settle_contract(contract, actual_failure=True))
         self.assertIn("settlement_amount", text)
-        self.assertIn("buyer_payoff", text)
+        self.assertIn("buyer_net", text)
 
 
 class TestCLI(unittest.TestCase):
@@ -117,14 +119,15 @@ class TestCLI(unittest.TestCase):
                 cwd=os.path.join(SRC, ".."), text=True, env={**os.environ, "PYTHONPATH": SRC},
             ))
             self.assertFalse(out_no["actual_failure"])
-            self.assertGreater(out_no["settlement_amount"], 0)
+            self.assertEqual(out_no["settlement_amount"], 0.0)
+            self.assertLess(out_no["buyer_net"], 0)
             out_yes = json.loads(subprocess.check_output(
                 [sys.executable, "-m", "CryoFutures", "settle",
                  "--input", valid, "--actual-failure"],
                 cwd=os.path.join(SRC, ".."), text=True, env={**os.environ, "PYTHONPATH": SRC},
             ))
             self.assertTrue(out_yes["actual_failure"])
-            self.assertGreater(out_yes["buyer_payoff"], 0)
+            self.assertGreater(out_yes["buyer_net"], 0)
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ def cmd_sample(args):
 
 
 def cmd_price(args):
-    result = price_future(args.asset_value, args.failure_prob, args.days_to_expiry)
+    result = price_future(args.asset_value, args.failure_prob, args.days_to_expiry, args.payout_amount)
     _dump_json(result, args.out)
     return 0
 
@@ -63,6 +63,7 @@ def build_parser():
 
     price = sub.add_parser("price", help="price a CryoFutures contract")
     price.add_argument("--asset-value", type=float, required=True)
+    price.add_argument("--payout-amount", type=float)
     price.add_argument("--failure-prob", type=float, required=True)
     price.add_argument("--days-to-expiry", type=int, required=True)
     price.add_argument("--out")
